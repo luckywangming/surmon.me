@@ -1,18 +1,29 @@
+/**
+ * @file Eslint config / Commonjs module
+ * @module eslint.config
+ * @author Surmon <https://github.com/surmon-china>
+*/
+
+const { isProdMode } = require('esm')(module)('./environment')
+
 module.exports = {
   root: true,
-  parser: 'babel-eslint',
   env: {
     browser: true,
     node: true
   },
   parserOptions: {
-    sourceType: 'module'
+    parser: 'babel-eslint'
   },
+  extends: [
+    'plugin:vue/recommended',
+    // 'plugin:prettier/recommended'
+  ],
   //  https:// github.com/feross/standard/blob/master/RULES.md#javascript-standard-style
-  // extends: 'standard',
-  //  required to lint *.vue files
   plugins: [
-    'html'
+    'html',
+    'vue',
+    // 'prettier'
   ],
   globals: {
     Set: true,
@@ -28,6 +39,8 @@ module.exports = {
   },
   //  add your custom rules here
   rules: {
+
+    // "prettier/prettier": "error",
 
     /*Possible Errors*/
 
@@ -53,7 +66,7 @@ module.exports = {
     "no-control-regex": 2,
 
     // 禁止使用debugger语句
-    "no-debugger": process.env.NODE_ENV === 'production' ? 2 : 0,
+    "no-debugger": isProdMode ? 'error' : 'off',
 
     // 函数参数禁止重名
     "no-dupe-args": 2,
@@ -338,7 +351,7 @@ module.exports = {
     "no-void": 2,
 
     // 生产代码中不能出现warning-comments包含的注释
-    "no-warning-comments": [2, { "terms": ["todo", "fixme", "any other term"], "location": "anywhere" }],
+    "no-warning-comments": [2, { "terms": ["fixme", "any other term"], "location": "anywhere" }],
 
     // 不要使用with语句
     "no-with": 2,
@@ -433,9 +446,6 @@ module.exports = {
 
     // 禁止使用同步方法，建议使用异步方法
     "no-sync": 0,
-
-
-
 
 
     /*Stylistic Issues*/
@@ -713,7 +723,7 @@ module.exports = {
     "no-class-assign": 2,
 
     // 箭头函数的箭头和比较操作符 (>, <, <=, and >=)很相似，该规则要求在和比较操作符容易发生混淆时禁止使用箭头函数语法
-    "no-confusing-arrow": 2,
+    "no-confusing-arrow": 0,
 
     // 禁止修改const声明的变量
     "no-const-assign": 2,
@@ -725,7 +735,7 @@ module.exports = {
     "no-new-symbol": 2,
 
     // 该规则可以定义不允许在应用中导入的模块
-    "no-restricted-imports": [2,
+    "no-restricted-imports": [0,
 
         "assert", "buffer", "child_process", "cluster", "crypto", "dgram", "dns", "domain", "events", "freelist", "fs", "http", "https", "module", "net", "os", "path", "punycode", "querystring", "readline", "repl", "smalloc", "stream", "string_decoder", "sys", "timers", "tls", "tracing", "tty", "url", "util", "vm", "zlib"
 

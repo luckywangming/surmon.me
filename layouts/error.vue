@@ -3,11 +3,10 @@
     <div class="error-content">
       <h1 class="error-code">{{ error.statusCode }}</h1>
       <div class="error-wrapper-message">
-        <!-- <h2 class="error-message">{{ error.message || '众里寻他 我已不再' }}</h2> -->
-        <h2 class="error-message">众里寻他 我已不再</h2>
+        <h2 class="error-message">{{ error.message || $i18n.text.notFound }}</h2>
       </div>
       <p class="error-link">
-        <nuxt-link class="link" to="/">Back to the home page</nuxt-link>
+        <nuxt-link class="link" to="/">{{ $i18n.text.backToHomePage }}</nuxt-link>
       </p>
     </div>
   </div>
@@ -18,10 +17,10 @@
     layout: 'empty',
     props: ['error'],
     mounted() {
-      this.$store.commit('option/SET_ERROR_COLUMU', true)
+      this.$store.commit('global/updateThreeColumnsState', true)
     },
     beforeDestroy() {
-      this.$store.commit('option/SET_ERROR_COLUMU', false)
+      this.$store.commit('global/updateThreeColumnsState', false)
     }
   }
 </script>
@@ -57,18 +56,29 @@
       > .error-code,
       > .error-link,
       > .error-wrapper-message {
-        animation: error-item ease-out both .5s .3s;
+        color: $black-light;
+        animation: error-item ease-out both .6s $transition-time-slow;
+      }
+
+      .link {
+
+        &:hover {
+          border-bottom: 1px solid;
+        }
       }
 
       > .error-code {
         text-transform: uppercase;
-        font-size: 12rem;
+        font-size: 10em;
+        font-weight: normal;
         margin: 0;
       }
 
       > .error-wrapper-message {
 
         > .error-message {
+          font-family: 'webfont-bolder', 'DINRegular';
+          font-weight: normal;
           margin-top: 0;
         }
       }

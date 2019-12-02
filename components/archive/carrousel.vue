@@ -1,21 +1,48 @@
 <template>
-  <div class="carrousel" :class="{ mobile: mobileLayout }">
+  <div class="carrousel" :class="{ mobile: isMobile }">
     <transition name="module" mode="out-in">
-      <empty-box class="article-empty-box" v-if="!article.data.data.length">
-        <slot>{{ $i18n.text.article.empty || 'No Result Article.' }}</slot>
+      <empty-box class="article-empty-box" key="empty" v-if="!articleList.length">
+        <slot>{{ $i18n.text.article.empty }}</slot>
       </empty-box>
-      <div class="swiper" v-swiper:swiper="swiperOption" v-else>
+      <div
+        key="swiper"
+        class="swiper index"
+        v-swiper:swiper="swiperOption"
+        v-else-if="renderSwiper"
+        @transitionStart="handleSwiperTransitionStart"
+        @transitionEnd="handleSwiperTransitionEnd"
+      >
         <div class="swiper-wrapper">
-          <div class="swiper-slide item" v-for="(article, index) in article.data.data.slice(0, 9)" :key="index">
-            <div class="content">
-              <img :src="buildThumb(article.thumb)" :alt="article.title">
-              <nuxt-link :to="`/article/${article.id}`" class="title">
-                <span>{{ article.title }}</span>
-              </nuxt-link>
+          <div
+            :key="index"
+            class="swiper-slide slide-item"
+            v-for="(article, index) in articleList.slice(0, 9)"
+          >
+            <div
+              class="content filter"
+              :class="{ 'motion-blur-horizontal': transitioning }"
+            >
+              <template v-if="article.ad">
+                <a
+                  :href="article.url"
+                  target="_blank"
+                  rel="external nofollow noopener"
+                  class="link"
+                >
+                  <img :src="article.src" :alt="article.title">
+                  <span class="title">{{ article.title }}</span>
+                </a>
+              </template>
+              <template v-else>
+                <nuxt-link :to="`/article/${article.id}`" class="link">
+                  <img :src="humanizeThumb(article.thumb)" :alt="article.title">
+                  <span class="title">{{ article.title }}</span>
+                </nuxt-link>
+              </template>
             </div>
           </div>
         </div>
-        <div class="swiper-pagination"></div>
+        <div class="swiper-pagination swiper-pagination-clickable swiper-pagination-bullets"></div>
       </div>
     </transition>
   </div>
@@ -23,10 +50,20 @@
 
 <script>
   import { mapState } from 'vuex'
+  import { getFileCDNUrl } from '~/transforms/url'
+  import adConfig from '~/config/ad.config'
+
   export default {
     name: 'index-carrousel',
+    props: {
+      article: {
+        type: Object
+      }
+    },
     data() {
       return {
+        renderSwiper: true,
+        transitioning: false,
         swiperOption: {
           autoplay: {
             delay: 3500,
@@ -37,107 +74,154 @@
             el: '.swiper-pagination'
           },
           setWrapperSize: true,
-          autoHeight: true,
           mousewheel: true,
           observeParents: true,
-          grabCursor: true,
+          // 禁用 PC 拖动手指样式
+          grabCursor: false,
+          // 警用 PC 拖动
+          simulateTouch : false,
           preloadImages: false,
           lazy: true
         }
       }
     },
-    props: {
-      article: {
-        type: Object
-      }
-    },
     computed: {
-      ...mapState('option', ['imgExt', 'mobileLayout'])
+      ...mapState('global', ['imageExt', 'isMobile']),
+      articleList() {
+        const { index, ...otherConfig } = adConfig.pc.carrousel
+        const articles = [...this.article.data.data].slice(0, 9)
+        articles.length && articles.splice(index, 0, {
+          ad: true,
+          ...otherConfig
+        })
+        return articles
+      }
     },
     methods: {
-      buildThumb(thumb) {
-        if (thumb) {
-          if (this.mobileLayout) {
-            return `${thumb}?imageView2/1/w/768/h/271/format/${this.imgExt}/interlace/1/q/80|watermark/2/text/U3VybW9uLm1l/font/Y2FuZGFyYQ==/fontsize/560/fill/I0ZGRkZGRg==/dissolve/30/gravity/SouthWest/dx/30/dy/15|imageslim`
-          } else {
-            return `${thumb}?imageView2/1/w/1190/h/420/format/${this.imgExt}/interlace/1/q/80|watermark/2/text/U3VybW9uLm1l/font/Y2FuZGFyYQ==/fontsize/680/fill/I0ZGRkZGRg==/dissolve/30/gravity/SouthWest/dx/30/dy/15|imageslim`
-          }
-        } else {
-          return `${this.cdnUrl}/images/${this.mobileLayout ? 'mobile-' : ''}thumb-carrousel.jpg`
+      humanizeThumb(thumb) {
+        if (!thumb) {
+          return getFileCDNUrl(`/images/${this.isMobile ? 'mobile-' : ''}thumb-carrousel.jpg`)
         }
+        if (this.isMobile) {
+          return `${thumb}?x-oss-process=style/blog.list.banner.mobile`
+        }
+        return `${thumb}?x-oss-process=style/blog.list.banner.pc`
+      },
+      handleSwiperTransitionStart() {
+        this.transitioning = true
+      },
+      handleSwiperTransitionEnd() {
+        this.transitioning = false
       }
+    },
+    activated() {
+      this.renderSwiper = true
+      this.handleSwiperTransitionEnd()
+    },
+    deactivated() {
+      this.renderSwiper = false
     }
   }
 </script>
 
+<style lang="scss">
+  .index.swiper {
+
+    .swiper-pagination {
+
+      .swiper-pagination-bullet {
+
+        &.swiper-pagination-bullet-active {
+          width: 2rem;
+          border-radius: 10px;
+        }
+      }
+    }
+  }
+</style>
+
 <style lang="scss" scoped>
+  $pc-carrousel-height: 15em;
+  $mobile-carrousel-height: calc((100vw - 2rem) * .35);
+
   .carrousel {
-    height: 15em;
-    margin-bottom: 1em;
+    height: $pc-carrousel-height;
+    margin-bottom: $lg-gap;
     position: relative;
     overflow: hidden;
-    background-color: $module-bg;
+    user-select: none;
+    @include module-blur-bg();
+
+    &.mobile {
+      margin-bottom: $gap;
+      height: $mobile-carrousel-height;
+
+      > .swiper {
+
+        .slide-item {
+
+          > .content {
+            height: $mobile-carrousel-height;
+
+            > .title {
+              right: 1.7rem;
+              max-width: 70%;
+            }
+          }
+        }
+      }
+    }
 
     > .swiper {
 
-      .item {
+      .slide-item {
 
         > .content {
           width: 100%;
-          height: 15em;
+          height: $pc-carrousel-height;
           position: relative;
           overflow: hidden;
 
-          > img {
+          > .link {
+            display: block;
             width: 100%;
-            @include css3-prefix(transform, rotate(0deg) scale(1));
-            @include css3-prefix(transition, transform 1s);
+            height: 100%;
+          }
+
+          img {
+            width: 100%;
+            transform: scale(1);
+            transition: transform .88s;
 
             &:hover {
-              @include css3-prefix(transform, rotate(2deg) scale(1.1));
+              transform: scale(1.06);
             }
           }
 
-          > .title {
+          .title {
             position: absolute;
+            margin: 0;
             top: 1.5rem;
             right: 2rem;
             color: $link-color;
-            margin: 0;
-            padding: 0 .6em;
+            padding-right: .6em;
+            padding-left: 1em;
             height: 2em;
             line-height: 2em;
             font-size: 1em;
             font-weight: bold;
             border-radius: 1px;
             letter-spacing: .3px;
+            max-width: 75%;
+            @include text-overflow;
+
             -webkit-background-clip: text;
-            background: linear-gradient(to right, transparent, $module-hover-bg-opacity-3, $module-hover-bg, $module-bg);
+            background: linear-gradient(90deg, transparent 0%, $module-bg 2em, $module-bg-opacity-9, $text-reversal);
 
             &:hover {
               color: $text-darken;
-              background-color: $module-hover-bg-opacity-9;
-            }
-          }
-        }
-      }
-    }
-
-    &.mobile {
-      min-height: 8rem;
-      height: auto;
-
-      > .swiper {
-
-        .item {
-
-          > .content {
-            min-height: 8rem;
-            height: auto;
-
-            > .title {
-              max-width: 75%;
-              @include text-overflow;
+              padding-left: .6em;
+              background-color: $module-bg;
             }
           }
         }

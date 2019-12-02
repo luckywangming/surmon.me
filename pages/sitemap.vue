@@ -1,19 +1,26 @@
 <template>
-  <div class="page" :class="{ mobile: mobileLayout }">
+  <div class="sitemap-page" :class="{ mobile: isMobile }">
     <div class="sitemap">
-      <div class="articles">
-        <h3 class="title" v-text="$i18n.text.article.name">articles</h3>
-        <p v-if="!articles.length" v-text="$i18n.text.article.empty">暂无文章</p>
+      <div class="module articles">
+        <h4 class="title" v-text="$i18n.text.article.name"></h4>
+        <p v-if="!articles.length" v-text="$i18n.text.article.empty"></p>
         <ul class="article-list" v-else>
-          <li class="item" v-for="(article, index) in articles">
+          <li class="item" :key="index" v-for="(article, index) in articles">
             <p class="item-content">
-              <nuxt-link class="link"
-                           :to="`/article/${article.id}`"
-                           :title="article.title">《{{ article.title }}》</nuxt-link>
-              <span class="sign">&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;</span>
-              <a class="toggle" href="" @click.prevent="$store.commit('sitemap/TOGGLE_ARTICLE_OPEN', index)">
-                <span v-text="$i18n.text.action[article.open ? 'close' : 'open']"></span>
+              <a class="link" :href="`/article/${article.id}`" target="_blank" :title="article.title">
+                <span class="sign">「</span>
+                <span class="title">{{ article.title }}</span>
+                <span class="sign">」</span>
               </a>
+              <span class="sign">&nbsp;&nbsp;-&nbsp;&nbsp;</span>
+              <small>
+                <a
+                  href
+                  class="toggle-link"
+                  @click.prevent="$store.commit('sitemap/updateArticleOpenState', index)"
+                  v-text="$i18n.text.action[article.open ? 'close' : 'open']"
+                ></a>
+              </small>
             </p>
             <transition name="module">
               <p v-show="article.open" class="item-description">
@@ -23,55 +30,67 @@
           </li>
         </ul>
       </div>
-      <br>
-      <div class="categories">
-        <h3 class="title" v-text="$i18n.text.category.name">categories</h3>
-        <p v-if="!categories.length" v-text="$i18n.text.article.empty">暂无分类</p>
+      <div class="module categories">
+        <h4 class="title" v-text="$i18n.text.category.name"></h4>
+        <p v-if="!categories.length" v-text="$i18n.text.article.empty"></p>
         <ul class="categories-list" v-else>
-          <li class="item" v-for="(category, index) in categories">
-            <p>
-              <nuxt-link class="name"
-                           :to="`/category/${category.slug}`"
-                           :title="category.name"
-                           v-text="$i18n.nav[category.slug]">{{ category.name }}</nuxt-link>
-              <span>&nbsp;</span>
+          <li class="item" :key="index" v-for="(category, index) in categories">
+            <p class="item-content">
+              <a
+                class="name"
+                target="_blank"
+                :href="`/category/${category.slug}`"
+                :title="category.name"
+              >{{ isEnLang ? category.slug : category.name }}</a>
               <span>（{{ category.count || 0 }}）</span>
-              <span>&nbsp;-&nbsp;&nbsp;</span>
+              <span>&nbsp;-&nbsp;</span>
               <span>{{ category.description }}</span>
             </p>
           </li>
         </ul>
       </div>
-      <br>
-      <div class="tags">
-        <h3 class="title" v-text="$i18n.text.tag.name">tags</h3>
+      <div class="module tags">
+        <h4 class="title" v-text="$i18n.text.tag.name">tags</h4>
         <p v-if="!tags.length" v-text="$i18n.text.article.empty">暂无标签</p>
         <ul class="tag-list" v-else>
-          <li class="item" v-for="tag in tags">
-            <nuxt-link :to="`/tag/${tag.slug}`" :title="tag.description">{{ tag.name }}</nuxt-link>
-            <span>&nbsp;</span>
+          <li class="item" :key="index" v-for="(tag, index) in tags">
+            <a
+              target="_blank"
+              :href="`/tag/${tag.slug}`"
+              :title="tag.description"
+            >{{ isEnLang ? tag.slug : tag.name }}</a>
             <span>（{{ tag.count || 0 }}）</span>
           </li>
         </ul>
       </div>
-      <br>
-      <div class="pages">
-        <h3 class="title" v-text="$i18n.text.page.name">pages</h3>
+      <div class="module pages">
+        <h4 class="title" v-text="$i18n.text.page.name">pages</h4>
         <ul class="page-list">
           <li class="item">
-            <nuxt-link to="/" v-text="$i18n.nav['home']">Home</nuxt-link>
+            <a href="/" target="_blank" v-text="$i18n.nav.home" />
           </li>
           <li class="item">
-            <nuxt-link to="/project" v-text="$i18n.nav['project']">Project</nuxt-link>
+            <a href="/about" target="_blank" v-text="$i18n.nav.about" />
           </li>
           <li class="item">
-            <nuxt-link to="/about" v-text="$i18n.nav['about']">About</nuxt-link>
+            <a href="/vlog" target="_blank" v-text="$i18n.nav.vlog" />
           </li>
           <li class="item">
-            <nuxt-link to="/guestbook" v-text="$i18n.nav['guestbook']">Guestbook</nuxt-link>
+            <a
+              target="_blank"
+              rel="external nofollow noopener"
+              href="https://github.surmon.me"
+              v-text="$i18n.nav.project"
+            />
           </li>
           <li class="item">
-            <a href="/sitemap.xml" target="_blank" v-text="$i18n.nav['map']">XML SiteMap</a>
+            <a href="/service" target="_blank" v-text="$i18n.nav.service" />
+          </li>
+          <li class="item">
+            <a href="/guestbook" target="_blank" v-text="$i18n.nav.guestbook" />
+          </li>
+          <li class="item">
+            <a href="/sitemap.xml" target="_blank" v-text="$i18n.nav.map" />
           </li>
         </ul>
       </div>
@@ -84,31 +103,34 @@
   export default {
     name: 'sitemap',
     head() {
-      const isEn = this.$store.state.option.language === 'en'
       return {
-        title: `${isEn ? '' : this.$i18n.nav.map + ' | '}Sitemap`,
+        title: `${this.isEnLang ? '' : this.$i18n.nav.map + ' | '}Sitemap`
       }
     },
-    fetch ({ store }) {
-      return store.dispatch('loadSitemapArticles', { per_page: 500 })
+    fetch({ store }) {
+      return store.dispatch('sitemap/fetchArticles', { per_page: 666 })
     },
     computed: {
+      isEnLang() {
+        return this.$store.getters['global/isEnLang']
+      },
       ...mapState({
-        tags: state => state.tag.data.data,
-        categories: state => state.category.data.data,
-        articles: state => state.sitemap.articles.data.data,
-        mobileLayout: state => state.option.mobileLayout,
+        tags: state => state.tag.data,
+        categories: state => state.category.data,
+        articles: state => state.sitemap.articles.data,
+        isMobile: state => state.global.isMobile,
       })
     }
   }
 </script>
 
 <style lang="scss" scoped>
-  .page {
-    padding: 2em 3em;
+  .sitemap-page {
+    padding: $gap 3rem;
     background-color: $module-bg;
     overflow: hidden;
-    
+    $border-guide: 1px solid;
+
     &.mobile {
       padding: 1.666rem;
 
@@ -122,17 +144,35 @@
             > .item-content {
 
               > .link {
+                display: flex;
+                border: none;
+
+                > .sign,
+                > .title {
+                  display: inline-block;
+                }
+
+                > .title {
+                  margin: 0;
+                  max-width: 88%;
+                  border-bottom: $border-guide;
+                  @include text-overflow();
+                }
+              }
+
+              .toggle-link {
+                padding-left: 1em;
                 display: block;
-                margin-bottom: 1rem;
+                margin: 1em 0;
               }
 
               > .sign {
                 display: none;
               }
+            }
 
-              > .toggle {
-
-              }
+            > .item-description {
+              margin-top: -$gap;
             }
           }
         }
@@ -140,35 +180,48 @@
     }
 
     .sitemap {
+      text-transform: capitalize;
 
       a {
-        text-decoration: underline;
+        border-bottom: $border-guide;
 
-        &.toggle {
-          text-transform: capitalize;
+        &.toggle-link {
+          border: none;
         }
       }
 
-      .tags,
-      .pages,
-      .articles,
-      .categories {
+      .module {
+        margin-bottom: $lg-gap * 2;
+        font-size: 1em;
 
         .title {
-          margin: 0em 0 1em;
           font-weight: bold;
           text-transform: capitalize;
         }
       }
 
       .articles {
-
         .article-list {
+          list-style: square;
 
           > .item {
 
+            > .item-content {
+              margin-bottom: 1.2em;
+
+              > .link {
+                border: none;
+
+                > .title {
+                  font-weight: normal;
+                  border-bottom: $border-guide;
+                }
+              }
+            }
+
             > .item-description {
-              line-height: 2.16rem;
+              line-height: 2em;
+              padding-left: 1em;
             }
           }
         }
@@ -176,30 +229,29 @@
 
       .tags,
       .pages {
+        margin-bottom: $gap;
 
         .tag-list,
         .page-list {
           overflow: hidden;
+          margin: 0;
 
           .item {
             float: left;
-            display: inline-block;
-            margin-right: 1.5em;
-            margin-bottom: 1em;
-            font-size: 1.1em;
+            display: block;
+            margin-right: $lg-gap;
+            margin-bottom: $lg-gap;
           }
         }
       }
 
       .categories {
-
         .categories-list {
+          list-style: square;
 
           .item {
-
             .name {
               text-transform: capitalize;
-              font-size: 1.1em;
             }
           }
         }

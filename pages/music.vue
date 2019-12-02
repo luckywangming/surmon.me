@@ -1,5 +1,5 @@
 <template>
-  <div class="page" :style="{ height: height + 'px' }">
+  <div class="music-page">
     <div class="player">
       <button class="prev-song" @click="prevSong" :disabled="!playerState.ready">
         <i class="iconfont icon-music-prev"></i>
@@ -7,38 +7,54 @@
       <div class="album-box">
         <div class="circle-progress">
           <svg viewBox="0 0 100 100">
-            <path class="circle-progress-circle-track" 
-                  stroke="rgba(197, 197, 197, 0.4)" 
-                  fill="none"
-                  :d="trackPath" 
-                  :stroke-width="relativeStrokeWidth" >
+            <path
+              class="circle-progress-circle-track"
+              stroke="rgba(197, 197, 197, 0.4)"
+              fill="none"
+              :d="trackPath"
+              :stroke-width="relativeStrokeWidth"
+            >
             </path>
-            <path class="circle-progress-circle-path" 
-                  stroke="rgba(190, 190, 190, 0.7)" 
-                  stroke-linecap="bevel" 
-                  fill="none" 
-                  :d="trackPath" 
-                  :stroke-width="relativeStrokeWidth" 
-                  :style="circlePathStyle">
+            <path
+              class="circle-progress-circle-path"
+              stroke="rgba(190, 190, 190, 0.7)"
+              stroke-linecap="bevel"
+              fill="none"
+              :d="trackPath"
+              :stroke-width="relativeStrokeWidth"
+              :style="circlePathStyle"
+            >
             </path>
           </svg>
         </div>
         <div class="song-bg-box" :class="{ 'playing': playerState.playing }">
-          <img :src="currentSongPicUrl">
+          <img :src="currentSongPicUrl" draggable="false" />
         </div>
         <div class="toggle-box">
           <transition name="module" mode="out-in">
-            <button class="toggle-btn" @click="togglePlay" v-if="playerState.playing" :disabled="!playerState.ready">
+            <button
+              key="pause"
+              class="toggle-btn"
+              @click="togglePlay"
+              v-if="playerState.playing"
+              :disabled="!playerState.ready"
+            >
               <i class="iconfont icon-music-pause"></i>
             </button>
-            <button class="toggle-btn" @click="togglePlay" v-else :disabled="!playerState.ready">
+            <button
+              key="play"
+              class="toggle-btn"
+              @click="togglePlay"
+              v-else
+              :disabled="!playerState.ready"
+            >
               <i class="iconfont icon-music-play"></i>
             </button>
           </transition>
         </div>
         <div class="toggle-muted">
           <button class="muted-btn" @click="toggleMuted" :disabled="!playerState.ready">
-            <i class="iconfont" :class="[playerState.muted ? 'icon-music-muted' : 'icon-music-volume']"></i>
+            <i class="iconfont" :class="playerState.muted ? 'icon-music-muted' : 'icon-music-volume'"></i>
           </button>
         </div>
       </div>
@@ -47,66 +63,65 @@
       </button>
     </div>
     <div class="song-info">
-      <h3 v-if="currentSong">
-        <span>{{ currentSong.name }}</span>
-        <span> By </span>
-        <span v-for="artist in currentSong.artists">{{ artist.name }}</span>
-        <span> / </span>
-        <span>{{ currentSong.album.name || 'unknow' }}</span>
+      <h3 class="name">
+        <span v-if="currentSong">
+          <span>{{ currentSong.name }}</span>
+          <span>By</span>
+          <span :key="index" v-for="(artist, index) in currentSong.artists">{{ artist.name }}</span>
+          <span>/</span>
+          <span>{{ currentSong.album.name || 'unknow' }}</span>
+        </span>
+        <span v-else>Kind words are the music of the world.</span>
       </h3>
-      <h3 v-else>Kind words are the music of the world.</h3>
+      <p class="lrc">
+        <span v-if="currentSongLrc.fetching">Loading...</span>
+        <span v-else>
+          <span v-if="!currentSongLrcContent">No Lyrics</span>
+          <span v-else>
+            <span v-if="currentSongLrcContent.version < 3">Bad Lyrics!</span>
+            <span v-else>
+              <transition name="module" mode="out-in">
+                <span class="lrc-text" :key="currentSongRealTimeLrc" v-text="currentSongRealTimeLrc"></span>
+              </transition>
+            </span>
+          </span>
+        </span>
+      </p>
     </div>
   </div>
 </template>
 
 <script>
-  import EventBus from '~/utils/event-bus'
+  import music from '~/services/music'
+  import { isBrowser } from '~/environment'
   export default {
     name: 'music',
     head() {
-      const isEn = this.$store.state.option.language === 'en'
       return {
-        title: `${isEn ? '' : this.$i18n.nav.music + ' | '}Music`,
+        title: `${this.isEnLang ? '' : this.$i18n.nav.music + ' | '}Music`
       }
-    },
-    data() {
-      return {
-        height: 0
-      }
-    },
-    created() {
-      if (this.$store.state.option.mobileLayout) {
-        this.$router.back()
-      }
-    },
-    mounted() {
-      if (process.browser) {
-        this.updateScreenHeight()
-        window.addEventListener('resize', this.updateScreenHeight)
-      }
-    },
-    beforeDestroy() {
-      window.removeEventListener('resize', this.updateScreenHeight)
     },
     computed: {
-      player() {
-        return EventBus.player.player
+      isEnLang() {
+        return this.$store.getters['global/isEnLang']
       },
       playerState() {
-        return EventBus.player.playerState
+        return music.state
       },
       currentSong() {
-        return EventBus.currentSong
+        return music.currentSong
+      },
+      currentSongLrc() {
+        return music.lrc
       },
       currentSongPicUrl() {
-        if (this.currentSong) {
-          const picUrl = this.currentSong.album.picUrl
-          return picUrl 
-                 ? picUrl.replace('http://', '/proxy/') + '?param=600y600' 
-                 : `${this.cdnUrl}/images/music-bg.jpg`
-        } else {
-          return `${this.cdnUrl}/images/music-bg.jpg`
-        }
+        return music.currentSongPicUrl
+      },
+      currentSongLrcContent() {
+        return music.currentSongLrcContent
+      },
+      currentSongRealTimeLrc() {
+        return music.currentSongRealTimeLrc
       },
       relativeStrokeWidth() {
         return (15 / 450 * 100).toFixed(1)
@@ -117,7 +132,8 @@
       },
       perimeter() {
         const radius = 50 - parseFloat(this.relativeStrokeWidth) / 2
-        return 2 * Math.PI * radius
+        const result  = 2 * Math.PI * radius
+        return result
       },
       circlePathStyle() {
         const perimeter = this.perimeter
@@ -128,52 +144,42 @@
         };
       }
     },
+    created() {
+      if (this.$store.state.global.isMobile) {
+        this.$router.back()
+      }
+    },
     methods: {
-      updateScreenHeight(event) {
-        const screenHeight = window.innerHeight
-        const minHeight = 14 * 53
-        if (screenHeight - 14 * 4 > minHeight) {
-          this.height = screenHeight - (14 * 12)
-        } else {
-          this.height = minHeight
-        }
-      },
       togglePlay() {
-        if (this.playerState.ready) {
-          this.player.togglePlay()
-        }
+        music.humanizeOperation(music.player.togglePlay)
       },
       toggleMuted() {
-        if (this.playerState.ready) {
-          this.player.toggleMuted()
-        }
+        music.humanizeOperation(music.player.toggleMuted)
       },
       prevSong() {
-        if (this.playerState.ready) {
-          this.player.prevSong()
-        }
+        music.humanizeOperation(music.player.prevSong)
       },
       nextSong() {
-        if (this.playerState.ready) {
-          this.player.nextSong()
-        }
+        music.humanizeOperation(music.player.nextSong)
       }
     }
   }
 </script>
 
 <style lang="scss" scoped>
-  .page {
+  .music-page {
     display: flex;
     justify-content: center;
     flex-direction: column;
     align-items: center;
+    min-height: 58rem;
+    height: $active-content-full-height;
 
     > .player {
       display: flex;
       justify-content: space-around;
       align-items: center;
-      margin-bottom: 2em;
+      margin-bottom: 2rem;
       width: 100%;
 
       > .prev-song,
@@ -189,7 +195,7 @@
 
         > .iconfont {
           font-size: 3em;
-          color: $dividers;
+          color: $text-dividers;
         }
       }
 
@@ -215,7 +221,7 @@
           position: absolute;
           width: 100%;
           height: 100%;
-          padding: 1rem;
+          padding: $gap;
           overflow: hidden;
           border-radius: 100%;
           animation: rotation 26s linear infinite;
@@ -230,7 +236,7 @@
             height: 100%;
             border-radius: 100%;
             background-color: darkgray;
-            background-image: url('/images/music-bg.jpg');
+            background-image: cdn-url('/images/music-bg.jpg');
             background-size: cover;
           }
         }
@@ -242,38 +248,39 @@
             width: 6rem;
             height: 6rem;
             line-height: 6rem;
-            text-align: center;
             background-color: $module-bg;
             border-radius: 100%;
-            opacity: .5;
+            opacity: .8;
+            font-size: 3em;
+            text-align: center;
+            transition: all $transition-time-normal;
 
             &:hover {
-              opacity: .8;
+              opacity: 1;
               transform: scale(1.2);
             }
 
             > .iconfont {
               color: $text-reversal;
-              font-size: 3em;
             }
           }
         }
 
         > .toggle-muted {
           position: absolute;
-          bottom: 15%;
+          top: 15%;
 
           > .muted-btn {
 
             > .iconfont {
               font-size: 2em;
-              color: $module-hover-bg;
+              color: $module-bg;
             }
 
             &:hover {
 
               > .iconfont {
-                color: $module-bg;
+                color: $text-reversal;
               }
             }
           }
@@ -290,6 +297,13 @@
 
     > .song-info {
       text-align: center;
+
+      > .lrc {
+
+        .lrc-text {
+          color: $primary;
+        }
+      }
     }
   }
 </style>

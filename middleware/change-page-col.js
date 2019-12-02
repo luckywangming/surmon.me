@@ -1,23 +1,32 @@
+/**
+ * @file 响应布局-中间件 / ES module
+ * @module middleware/change-page-col
+ * @author Surmon <https://github.com/surmon-china>
+ */
 
-export default function ({ route, store }, next) {
+import systemConstants from '~/constants/system'
 
-  // fullColumn
-  const fullColumnPageNames = ['about', 'project', 'sitemap']
-  const fullColumn = fullColumnPageNames.includes(route.name)
+export default ({ route, store }) => {
+
+  // columns
+  const isTwoColumns = [
+    systemConstants.Route.About,
+    systemConstants.Route.Vlog,
+    systemConstants.Route.Sitemap
+  ].includes(route.name)
+
+  const isThreeColumns = [
+    systemConstants.Route.Music,
+    systemConstants.Route.App,
+    systemConstants.Route.Service
+  ].includes(route.name)
   
-  // set fullColumn
-  if (!Object.is(store.state.option.fullColumn, fullColumn)) {
-    store.commit('option/SET_FULL_COLUMU', fullColumn)
+  // set columns
+  if (store.state.global.isTwoColumns !== isTwoColumns) {
+    store.commit('global/updateTwoColumnsState', isTwoColumns)
   }
-
-  // errorColumn
-  const errorColumn = ['music', 'app', 'service'].includes(route.name)
-
-  // set errorColumn
-  if (!Object.is(store.state.option.errorColumn, errorColumn)) {
-    store.commit('option/SET_ERROR_COLUMU', errorColumn)
+  
+  if (store.state.global.isThreeColumns !== isThreeColumns) {
+    store.commit('global/updateThreeColumnsState', isThreeColumns)
   }
-
-  // next
-  next()
 }

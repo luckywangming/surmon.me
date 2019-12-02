@@ -1,6 +1,6 @@
 <template>
-  <div class="index">
-    <article-list :article="article" @loadmore="loadmoreArticle"></article-list>
+  <div class="keyword-archive-page">
+    <article-list :article="article" @loadmore="loadmoreArticle" />
   </div>
 </template>
 
@@ -9,15 +9,16 @@
 
   export default {
     name: 'category-article-list',
-    validate ({ params }) {
+    validate({ params }) {
       return !!params.keyword
     },
     fetch({ store, params }) {
-      return store.dispatch('loadArticles', params)
+      return store.dispatch('article/fetchList', params)
     },
     head () {
       return {
-        title: `${this.defaultParams.keyword} | Search` }
+        title: `${this.defaultParams.keyword} | Search`
+      }
     },
     components: {
       ArticleList
@@ -39,7 +40,7 @@
     },
     methods: {
       loadmoreArticle() {
-        this.$store.dispatch('loadArticles', this.nextPageParams)
+        this.$store.dispatch('article/fetchList', this.nextPageParams)
       }
     }
   }

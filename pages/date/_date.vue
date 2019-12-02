@@ -1,6 +1,6 @@
 <template>
-  <div class="index">
-    <article-list :article="article" @loadmore="loadmoreArticle"></article-list>
+  <div class="date-archive-page">
+    <article-list :article="article" @loadmore="loadmoreArticle" />
   </div>
 </template>
 
@@ -9,12 +9,12 @@
   import ArticleList from '~/components/archive/list'
 
   export default {
-    name: 'data-article-list',
+    name: 'date-article-list',
     validate ({ params }) {
-      return !Object.is(new Date(params.date).toString(), 'Invalid Date')
+      return new Date(params.date).toString() !== 'Invalid Date'
     },
     fetch({ store, params }) {
-      return store.dispatch('loadArticles', params)
+      return store.dispatch('article/fetchList', params)
     },
     head() {
       return { title: `${this.defaultParams.date} | Date` }
@@ -40,7 +40,7 @@
     },
     methods: {
       loadmoreArticle() {
-        this.$store.dispatch('loadArticles', this.nextPageParams)
+        this.$store.dispatch('article/fetchList', this.nextPageParams)
       }
     }
   }

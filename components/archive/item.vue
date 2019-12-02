@@ -1,28 +1,37 @@
 <template>
-  <div class="article-list-item">
-    <div class="item-content" :class="{ mobile: mobileLayout }">
-      <div class="item-thumb" v-if="!mobileLayout">
+  <div class="article-list-item" :class="{ mobile: isMobile }">
+    <div class="item-content">
+      <div class="item-thumb" v-if="!isMobile">
         <nuxt-link :to="`/article/${article.id}`">
-          <span class="item-oirigin" :class="{
-            self: !article.origin,
-            other: article.origin === 1,
-            hybrid: article.origin === 2
-          }">
-            <span v-if="!article.origin" v-text="$i18n.text.origin.original">原创</span>
-            <span v-else-if="article.origin === 1" v-text="$i18n.text.origin.reprint">转载</span>
-            <span v-else-if="article.origin === 2" v-text="$i18n.text.origin.hybrid">混撰</span>
+          <span
+            class="item-oirigin"
+            :class="{
+              self: !article.origin,
+              other: article.origin === constants.OriginState.Reprint,
+              hybrid: article.origin === constants.OriginState.Hybrid
+            }"
+          >
+            <span v-if="!article.origin" v-text="$i18n.text.origin.original"></span>
+            <span v-else-if="article.origin === constants.OriginState.Reprint" v-text="$i18n.text.origin.reprint"></span>
+            <span v-else-if="article.origin === constants.OriginState.Hybrid" v-text="$i18n.text.origin.hybrid"></span>
           </span>
-          <img class="item-thumb-img" 
-               :src="buildThumb(article.thumb)"
-               :alt="article.title"
-               :title="article.title">
+          <img
+            class="item-thumb-img"
+            :src="buildThumb(article.thumb)"
+            :alt="article.title"
+            :title="article.title"
+          />
         </nuxt-link>
       </div>
       <div class="item-body">
-        <h4 class="item-title">
-          <nuxt-link :to="`/article/${article.id}`" :title="article.title" v-text="article.title"></nuxt-link>
-        </h4>
-        <p class="item-description" style="-webkit-box-orient: vertical;" v-html="article.description"></p>
+        <h5 class="item-title">
+          <nuxt-link :to="`/article/${article.id}`" :title="article.title" v-text="article.title" />
+        </h5>
+        <p
+          class="item-description"
+          style="-webkit-box-orient: vertical;"
+          v-html="article.description"
+        ></p>
         <div class="item-meta">
           <span class="date">
             <i class="iconfont icon-clock"></i>
@@ -37,24 +46,32 @@
             <span>{{ article.meta.comments || 0 }}</span>
           </span>
           <span class="likes">
-            <i class="iconfont icon-like"></i>
+            <i class="iconfont icon-like" :class="{ liked: isLiked }"></i>
             <span>{{ article.meta.likes || 0 }}</span>
           </span>
-          <span class="categories">
+          <span class="categories" v-if="!isMobile">
             <i class="iconfont icon-list"></i>
-            <nuxt-link :key="index"
-                       :to="`/category/${category.slug}`"
-                       v-if="article.category && article.category.length"
-                       v-for="(category, index) in article.category"
-                       v-text="$i18n.nav[category.slug]">{{ category.name }}</nuxt-link>
-            <span v-else v-text="$i18n.text.category.empty">未分类</span>
+            <template v-if="article.category.length">
+              <nuxt-link
+                :key="index"
+                :to="`/category/${category.slug}`"
+                v-for="(category, index) in article.category"
+                v-text="isEnLang ? category.slug : category.name"
+              />
+            </template>
+            <span v-else v-text="$i18n.text.category.empty"></span>
           </span>
-          <span class="tags" v-show="false">
+          <span class="tags" v-if="false">
             <i class="iconfont icon-tag"></i>
-            <span v-if="!article.tag.length" v-text="$i18n.text.tag.empty">无</span>
-            <nuxt-link :key="index" 
-                         :to="`/tag/${tag.slug}`" 
-                         v-for="(tag, index) in article.tag">{{ tag.name }}</nuxt-link>
+            <template v-if="article.tag.length">
+              <nuxt-link
+                :key="index"
+                :to="`/tag/${tag.slug}`"
+                v-for="(tag, index) in article.tag"
+                v-text="isEnLang ? tag.slug : tag.name"
+              />
+            </template>
+            <span v-else v-text="$i18n.text.tag.empty"></span>
           </span>
         </div>
       </div>
@@ -64,27 +81,43 @@
 
 <script>
   import { mapState } from 'vuex'
+  import { getFileCDNUrl } from '~/transforms/url'
+  import { localHistoryLikes } from '~/services/local-storage'
+
   export default {
     name: 'article-list-item',
     props: {
       article: Object
     },
+    data() {
+      return {
+        isLiked: false
+      }
+    },
     computed: {
-      ...mapState('option', ['imgExt', 'language', 'mobileLayout'])
+      ...mapState('global', ['imageExt', 'language', 'isMobile', 'constants']),
+      isEnLang() {
+        return this.$store.getters['global/isEnLang']
+      },
     },
     methods: {
       buildThumb(thumb) {
-        if (!thumb) return `${this.cdnUrl}/images/thumb-article.jpg`
-        return `${thumb}?imageView2/1/w/350/h/238/format/${this.imgExt}/interlace/1/q/75|watermark/2/text/U3VybW9uLm1l/font/Y2FuZGFyYQ==/fontsize/460/fill/I0ZGRkZGRg==/dissolve/23/gravity/SouthWest/dx/15/dy/7|imageslim`
+        return thumb
+          ? `${thumb}?x-oss-process=style/blog.list.item.pc`
+          : getFileCDNUrl('/images/thumb-article.jpg')
       }
+    },
+    mounted() {
+      const historyLikes = localHistoryLikes.get()
+      this.isLiked = historyLikes && historyLikes.pages.includes(this.article.id)
     }
   }
 </script>
 
 <style lang="scss" scoped>
   .article-list-item {
-    margin-bottom: 1em;
-    background-color: $module-bg;
+    margin-bottom: $lg-gap;
+    @include module-blur-bg();
 
     &:last-child {
       margin: 0;
@@ -95,22 +128,23 @@
     }
 
     > .item-content {
+      $height: $gap * 11;
+      $padding: $sm-gap;
+      $content-height: $height - ($padding * 2);
       display: block;
       overflow: hidden;
-      height: 9.5em;
-      padding: .5em;
+      height: $height;
+      padding: $padding;
 
       &:hover {
-
         > .item-thumb {
-
           .item-oirigin {
             opacity: 1;
           }
 
           .item-thumb-img {
-            @include css3-prefix(opacity, .95);
-            @include css3-prefix(transform, translateX(-.5em));
+            opacity: .95;
+            transform: translateX(-3px);
           }
         }
       }
@@ -118,32 +152,31 @@
       > .item-thumb {
         float: left;
         width: 12em;
-        height: 8.5em;
+        height: $content-height;
         overflow: hidden;
         position: relative;
 
         .item-oirigin {
-          // width: 4rem;
-          height: 2.1rem;
-          line-height: 2.1rem;
+          position: absolute;
           left: 0;
           top: 0;
-          position: absolute;
-          z-index: 9;
-          font-size: $font-size-small;
-          text-align: center;
-          color: #fff;
+          height: 2.1rem;
+          line-height: 2.1rem;
+          z-index: 1;
+          padding: 0 $sm-gap;
           border-bottom-right-radius: 1px;
           opacity: .4;
-          padding: 0 .8rem;
+          font-size: $font-size-small;
+          color: $text-reversal;
+          text-align: center;
           text-transform: uppercase;
 
           &.self {
-            background-color: rgba(#4caf50, .5);
+            background-color: rgba($accent, .5);
           }
 
           &.other {
-            background-color: rgba(#ff5722, .5);
+            background-color: rgba($red, .5);
           }
 
           &.hybrid {
@@ -153,62 +186,60 @@
 
         .item-thumb-img {
           min-width: 100%;
-          width: calc(100% + .5em);
-          max-width: calc(100% + .5em);
+          width: calc(100% + 3px);
+          max-width: calc(100% + 3px);
           height: auto;
-          min-height: 8.5em;
+          min-height: $content-height;
           border-color: transparent;
           background-color: $module-hover-bg;
-          @include css3-prefix(opacity, 1);
-          @include css3-prefix(transform, translateX(0));
+          opacity: 1;
+          transform: translateX(0);
         }
       }
 
       > .item-body {
         float: right;
         width: 28.5em;
-        height: 8.5em;
+        height: $content-height;
 
         > .item-title {
-          font-size: 1em;
+          margin-top: 3px;
+          margin-bottom: $sm-gap;
           font-weight: bold;
           color: $link-hover-color;
-          margin-top: .2em;
-          margin-bottom: .5em;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          @include text-overflow();
 
           > a {
             margin-left: 0;
+            transition: margin $transition-time-normal linear;
 
             &:hover {
               display: inline-block;
               text-decoration: underline;
-              margin-left: .5em;
+              margin-left: $sm-gap;
             }
           }
         }
 
         > .item-description {
-          height: 5em;
+          height: 5rem;
           margin: 0;
-          margin-bottom: 0.3em;
-          overflow: hidden;
-          font-size: .9em;
+          margin-bottom: $xs-gap;
           line-height: 1.8em;
+          overflow: hidden;
           text-overflow: ellipsis;
+          font-size: $font-size-h6;
           @include clamp(3);
         }
 
         > .item-meta {
           height: 2em;
+          line-height: 2em;
           display: flex;
-          justify-content: flex-start;
+          justify-content: space-between;
           align-items: baseline;
           overflow: hidden;
-          font-size: .9em;
-          line-height: 2em;
+          font-size: $font-size-small;
           white-space: nowrap;
           text-overflow: ellipsis;
           word-wrap: normal;
@@ -219,6 +250,13 @@
 
           > .views {
             min-width: 4rem;
+          }
+
+          > .likes {
+
+            > .liked {
+              color: $red;
+            }
           }
 
           > .likes,
@@ -232,11 +270,9 @@
           > .likes,
           > .tags,
           > .categories {
-            margin-right: 1em;
 
             > .iconfont {
-              font-size: 1em;
-              margin-right: .4em;
+              margin-right: $xs-gap;
             }
           }
 
@@ -245,7 +281,7 @@
 
             a {
               text-transform: capitalize;
-              margin-right: .5em;
+              margin-right: $sm-gap;
             }
           }
 
@@ -254,9 +290,19 @@
           }
         }
       }
+    }
 
-       &.mobile {
+
+    &.mobile {
+      margin-bottom: $gap;
+
+      &:last-child {
+        margin: 0;
+      }
+
+      > .item-content {
         height: auto;
+        padding: $sm-gap $gap;
 
         > .item-body {
           width: 100%;
@@ -268,7 +314,6 @@
           }
 
           > .item-meta {
-            justify-content: space-between;
 
             > .date,
             > .views,
